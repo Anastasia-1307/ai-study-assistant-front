@@ -5,7 +5,6 @@ function ResultPanel({ result }) {
       <div className="results-heading">
         <div>
           <p className="eyebrow">REZULTAT GENERAT</p>
-          <h2>Materialele tale de studiu</h2>
         </div>
       </div>
 

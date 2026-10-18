@@ -1,42 +1,71 @@
 import "./App.css";
-import Header from "./components/Header";
-import CourseForm from "./components/CourseForm";
-import LoadingMessage from "./components/LoadingMessage";
-import ResultPanel from "./components/ResultPanel";
-import { useStudyAssistant } from "./hooks/useStudyAssistant";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginPage from "./components/LoginPage";
+import RegisterPage from "./components/RegisterPage";
+import OptionsPage from "./components/OptionsPage";
+import AssistantPage from "./components/AssistantPage";
+import MaterialsPage from "./components/MaterialsPage";
+import ProgressPage from "./components/ProgressPage";
 
-function App() {
-  const {
-    courseText,
-    setCourseText,
-    result,
-    loading,
-    error,
-    generateMaterials,
-    cancelGeneration,
-    handlePDFUploaded,
-    uploadedDocument,
-  } = useStudyAssistant();
+function AppRoutes() {
+  const { isAuthenticated, login, logout } = useAuth();
 
   return (
-    <main className="app-shell">
-      <Header />
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage onLogin={login} onRegister={() => <Navigate to="/register" />} />} />
+      <Route path="/register" element={<RegisterPage onRegister={login} onLogin={() => <Navigate to="/login" />} />} />
 
-      <CourseForm
-        courseText={courseText}
-        setCourseText={setCourseText}
-        loading={loading}
-        error={error}
-        onSubmit={generateMaterials}
-        onCancel={cancelGeneration}
-        onPDFUploaded={handlePDFUploaded}
-        uploadedDocument={uploadedDocument}
+      {/* Protected routes */}
+      <Route
+        path="/options"
+        element={
+          <ProtectedRoute>
+            <OptionsPage onLogout={logout} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-assistant"
+        element={
+          <ProtectedRoute>
+            <AssistantPage onLogout={logout} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/materials"
+        element={
+          <ProtectedRoute>
+            <MaterialsPage onLogout={logout} />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-progress"
+        element={
+          <ProtectedRoute>
+            <ProgressPage onLogout={logout} />
+          </ProtectedRoute>
+        }
       />
 
-      {loading && <LoadingMessage />}
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/options" : "/login"} replace />} />
 
-      {result && <ResultPanel result={result} />}
-    </main>
+      {/* Catch all - redirect to options if authenticated, otherwise login */}
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/options" : "/login"} replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 
