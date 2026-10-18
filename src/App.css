@@ -247,6 +247,7 @@ textarea {
   line-height: 1.85;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  text-align: left;
 }
 .send-button {
   width: 40px;
