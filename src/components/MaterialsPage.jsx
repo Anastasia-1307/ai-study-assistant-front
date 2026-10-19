@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 function MaterialsPage() {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ function MaterialsPage() {
     due_date: "",
     course_id: null
   });
+  const [editingAssignment, setEditingAssignment] = useState(null);
 
   // Schedule state
   const [schedule, setSchedule] = useState([]);
@@ -56,14 +57,14 @@ function MaterialsPage() {
 
     // If token expired, try to refresh
     if (response.status === 401) {
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
+      const newAccessToken = await refreshAccessToken();
+      if (newAccessToken) {
         // Retry original request with new token
         response = await fetch(url, {
           ...options,
           headers: {
             ...options.headers,
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${newAccessToken}`,
           },
         });
       } else {
@@ -194,9 +195,55 @@ function MaterialsPage() {
       await fetchWithAuth(`${API_BASE}/assignments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newAssignment, course_id: selectedCourse }),
+        body: JSON.stringify({
+          ...newAssignment,
+          due_date: newAssignment.due_date || null,
+          course_id: selectedCourse,
+        }),
       });
       setNewAssignment({ title: "", description: "", due_date: "", course_id: null });
+      loadAssignments(selectedCourse);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const updateAssignment = async (e) => {
+    e.preventDefault();
+    try {
+      await fetchWithAuth(`${API_BASE}/assignments/${editingAssignment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editingAssignment.title,
+          description: editingAssignment.description || null,
+          due_date: editingAssignment.due_date || null,
+          status: editingAssignment.status,
+        }),
+      });
+      setEditingAssignment(null);
+      loadAssignments(selectedCourse);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const deleteAssignment = async (id) => {
+    try {
+      await fetchWithAuth(`${API_BASE}/assignments/${id}`, { method: "DELETE" });
+      loadAssignments(selectedCourse);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const setAssignmentStatus = async (assignment, status) => {
+    try {
+      await fetchWithAuth(`${API_BASE}/assignments/${assignment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
       loadAssignments(selectedCourse);
     } catch (err) {
       setError(err.message);
@@ -285,6 +332,26 @@ function MaterialsPage() {
     try {
       await fetchWithAuth(`${API_BASE}/files/${id}`, { method: "DELETE" });
       loadFiles();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const downloadFile = async (file) => {
+    try {
+      const response = await fetch(`${API_BASE}/files/${file.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Fișierul nu a putut fi descărcat");
+
+      const downloadUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       setError(err.message);
     }
@@ -414,7 +481,7 @@ function MaterialsPage() {
                     Vezi teme
                   </button>
                   <button onClick={() => setEditingCourse({ ...course })} className="view-button">Editează</button>
-                  <button onClick={() => deleteNote(course.id)} className="delete-button">Șterge</button>
+                  <button onClick={() => deleteCourse(course.id)} className="delete-button">Șterge</button>
                 </div>
               ))}
             </div>
@@ -434,14 +501,69 @@ function MaterialsPage() {
                     value={newAssignment.due_date}
                     onChange={(e) => setNewAssignment({ ...newAssignment, due_date: e.target.value })}
                   />
+                  <textarea
+                    className="course-textarea"
+                    placeholder="Descriere (opțional)"
+                    value={newAssignment.description}
+                    onChange={(e) => setNewAssignment({ ...newAssignment, description: e.target.value })}
+                  />
                   <button type="submit" className="auth-button">Adaugă temă</button>
                 </form>
                 <div className="items-list">
+                  {editingAssignment && (
+                    <form className="material-form" onSubmit={updateAssignment}>
+                      <input
+                        className="auth-input"
+                        value={editingAssignment.title}
+                        onChange={(e) => setEditingAssignment({ ...editingAssignment, title: e.target.value })}
+                      />
+                      <input
+                        className="auth-input"
+                        type="date"
+                        value={editingAssignment.due_date ? editingAssignment.due_date.split("T")[0] : ""}
+                        onChange={(e) => setEditingAssignment({ ...editingAssignment, due_date: e.target.value })}
+                      />
+                      <textarea
+                        className="course-textarea"
+                        placeholder="Descriere (opțional)"
+                        value={editingAssignment.description || ""}
+                        onChange={(e) => setEditingAssignment({ ...editingAssignment, description: e.target.value })}
+                      />
+                      <button type="submit" className="auth-button">Salvează</button>
+                      <button type="button" className="view-button" onClick={() => setEditingAssignment(null)}>Anulează</button>
+                    </form>
+                  )}
                   {assignments.map((assignment) => (
                     <div key={assignment.id} className="item-card">
                       <h4>{assignment.title}</h4>
-                      <p>Scadență: {assignment.due_date}</p>
-                      <span className={`status-badge ${assignment.status}`}>{assignment.status}</span>
+                      {assignment.description && <p>{assignment.description}</p>}
+                      <p>
+                        Scadență:{" "}
+                        {assignment.due_date
+                          ? assignment.due_date.split("T")[0]
+                          : "Nespecificată"}
+                      </p>
+                      <span className={`status-badge ${assignment.status}`}>
+                        {assignment.status === "completed" ? "Realizată" : "Nerealizată"}
+                      </span>
+                      <div className="assignment-actions">
+                        <button onClick={() => setEditingAssignment({ ...assignment })} className="view-button">Editează</button>
+                        <button
+                          onClick={() => setAssignmentStatus(assignment, "completed")}
+                          className="complete-button"
+                          disabled={assignment.status === "completed"}
+                        >
+                          Realizată
+                        </button>
+                        <button
+                          onClick={() => setAssignmentStatus(assignment, "pending")}
+                          className="view-button"
+                          disabled={assignment.status !== "completed"}
+                        >
+                          Nerealizată
+                        </button>
+                        <button onClick={() => deleteAssignment(assignment.id)} className="delete-button">Șterge</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -510,7 +632,7 @@ function MaterialsPage() {
                   <p>{item.day_of_week}: {item.start_time} - {item.end_time}</p>
                   <p>{item.location}</p>
                   <button onClick={() => setEditingSchedule({ ...item })} className="view-button">Editează</button>
-                  <button onClick={() => deleteNote(item.id)} className="delete-button">Șterge</button>
+                  <button onClick={() => deleteSchedule(item.id)} className="delete-button">Șterge</button>
                 </div>
               ))}
             </div>
@@ -522,7 +644,7 @@ function MaterialsPage() {
             <form className="material-form" onSubmit={uploadFile}>
               <input
                 type="file"
-                className="auth-input"
+                className="auth-input file-input"
                 onChange={(e) => setSelectedFile(e.target.files[0])}
               />
               <button type="submit" className="auth-button">Încarcă fișier</button>
@@ -537,6 +659,7 @@ function MaterialsPage() {
               {files.map((file) => (
                 <div key={file.id} className="item-card">
                   <h3>{file.filename}</h3>
+                  <button onClick={() => downloadFile(file)} className="view-button">Descarcă</button>
                   <button onClick={() => setEditingFile({ ...file, replacement: null })} className="view-button">Editează</button>
                   <p>Tip: {file.file_type} | Mărime: {(file.file_size / 1024).toFixed(2)} KB</p>
                   <button onClick={() => deleteFile(file.id)} className="delete-button">Șterge</button>

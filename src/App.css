@@ -50,6 +50,8 @@ textarea {
   left: 0;
   top: 0;
   display: flex;
+  width: 100%;
+  justify-content: space-between;
   gap: 12px;
 }
 
@@ -601,10 +603,16 @@ textarea {
 .options-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
   width: 100%;
   max-width: 640px;
   margin-bottom: 12px;
+}
+
+.options-header .logout-button {
+  position: absolute;
+  right: -12px;
 }
 
 .options-title {
@@ -666,6 +674,90 @@ textarea {
   text-align: center;
   line-height: 1.6;
 }
+
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper .auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #737b91;
+  cursor: pointer;
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.password-toggle:hover {
+  color: #6c63ff;
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid #6c63ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+
+.file-input {
+  width: 100%;
+  padding: 10px;
+  color: #414961;
+  background: #fff;
+  border: 1px solid #d9d5f2;
+  border-radius: 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.file-input::file-selector-button {
+  padding: 10px 16px;
+  margin-right: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #7c5ce7, #6241c8);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.file-input::file-selector-button:hover {
+  background: linear-gradient(135deg, #6c4bd5, #5132b5);
+  transform: translateY(-1px);
+}
+
+.file-input:focus-visible {
+  outline: 2px solid #8b75ed;
+  outline-offset: 2px;
+}
+
+
 
 @media (max-width: 600px) {
   .options-title {
@@ -994,6 +1086,32 @@ textarea {
   margin: 0 0 16px;
   font-size: 1.2rem;
   color: var(--primary);
+}
+
+.assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.assignment-actions .view-button {
+  margin-right: 0;
+}
+
+.complete-button {
+  border: 1px solid #059669;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #d1fae5;
+  color: #065f46;
+  cursor: pointer;
+}
+
+.complete-button:disabled,
+.assignment-actions .view-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Progress Page Styles */

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 function ProgressPage() {
   const navigate = useNavigate();
@@ -48,14 +48,14 @@ function ProgressPage() {
 
     // If token expired, try to refresh
     if (response.status === 401) {
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
+      const newAccessToken = await refreshAccessToken();
+      if (newAccessToken) {
         // Retry original request with new token
         response = await fetch(url, {
           ...options,
           headers: {
             ...options.headers,
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${newAccessToken}`,
           },
         });
       } else {
@@ -99,7 +99,7 @@ function ProgressPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...newAchievement,
-          grade: parseFloat(newAchievement.grade)
+          grade: parseInt(newAchievement.grade, 10)
         }),
       });
       setNewAchievement({ subject: "", grade: "", date: "", notes: "" });
@@ -250,7 +250,7 @@ function ProgressPage() {
 
       {/* Achievements Section */}
       <div className="progress-section">
-        <h2>Reușite (Note)</h2>
+        <h2>Reușite (note)</h2>
         <form className="material-form" onSubmit={createAchievement}>
           <input
             className="auth-input"
@@ -261,10 +261,10 @@ function ProgressPage() {
           <input
             className="auth-input"
             type="number"
-            min="0"
+            min="1"
             max="10"
-            step="0.1"
-            placeholder="Notă (0-10)"
+            step="1"
+            placeholder="Notă (1-10)"
             value={newAchievement.grade}
             onChange={(e) => setNewAchievement({ ...newAchievement, grade: e.target.value })}
           />
@@ -291,7 +291,7 @@ function ProgressPage() {
 
       {/* Study Sessions Section */}
       <div className="progress-section">
-        <h2>Sesiuni de Studiu</h2>
+        <h2>Sesiuni de studiu</h2>
         <form className="material-form" onSubmit={createStudySession}>
           <input
             className="auth-input"
@@ -330,7 +330,7 @@ function ProgressPage() {
 
       {/* Improvement Areas Section */}
       <div className="progress-section">
-        <h2>Aspecte de Îmbunătățit</h2>
+        <h2>Aspecte de îmbunătățit</h2>
         <form className="material-form" onSubmit={createImprovementArea}>
           <input
             className="auth-input"
@@ -351,7 +351,9 @@ function ProgressPage() {
             <div key={area.id} className="item-card">
               <h3>{area.area}</h3>
               <p>{area.description}</p>
-              <span className={`status-badge ${area.status}`}>{area.status}</span>
+              <span className={`status-badge ${area.status}`}>
+                {area.status === "resolved" ? "Rezolvat" : area.status}
+              </span>
               <div className="item-actions">
                 {area.status === "active" && (
                   <button

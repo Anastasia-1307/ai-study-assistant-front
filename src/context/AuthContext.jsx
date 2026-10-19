@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const refreshRequestRef = useRef(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -46,12 +47,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshAccessToken = async () => {
+    if (refreshRequestRef.current) {
+      return refreshRequestRef.current;
+    }
+
     if (!refreshToken) {
       await logout();
       return false;
     }
 
-    try {
+    refreshRequestRef.current = (async () => {
+      try {
       const response = await fetch("http://localhost:8000/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,11 +73,16 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("refreshToken", data.refresh_token);
       setToken(data.access_token);
       setRefreshToken(data.refresh_token);
-      return true;
-    } catch (err) {
-      await logout();
-      return false;
-    }
+      return data.access_token;
+      } catch (err) {
+        await logout();
+        return false;
+      } finally {
+        refreshRequestRef.current = null;
+      }
+    })();
+
+    return refreshRequestRef.current;
   };
 
   return (
@@ -90,10 +101,3 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};

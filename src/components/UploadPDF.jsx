@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 
 export default function UploadPDF({ onUploaded }) {
+  const { token, refreshAccessToken } = useAuth();
   const fileInputRef = useRef(null);
 
   const [file, setFile] = useState(null);
@@ -34,13 +36,23 @@ export default function UploadPDF({ onUploaded }) {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch(
+      const upload = (accessToken) => fetch(
         "http://127.0.0.1:8000/upload-pdf",
         {
           method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: formData,
         }
       );
+
+      let response = await upload(token);
+      if (response.status === 401) {
+        const newAccessToken = await refreshAccessToken();
+        if (!newAccessToken) {
+          throw new Error("Sesiune expirată. Autentifică-te din nou.");
+        }
+        response = await upload(newAccessToken);
+      }
 
       const data = await response.json();
 
