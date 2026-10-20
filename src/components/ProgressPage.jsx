@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 
 function ProgressPage() {
   const navigate = useNavigate();
-  const { token, logout, refreshAccessToken } = useAuth();
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,30 +38,13 @@ function ProgressPage() {
   const API_BASE = "http://localhost:8000/progress";
 
   const fetchWithAuth = async (url, options = {}) => {
-    let response = await fetch(url, {
+    const response = await fetch(url, {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Bearer ${token}`,
       },
+      credentials: "include",
     });
-
-    // If token expired, try to refresh
-    if (response.status === 401) {
-      const newAccessToken = await refreshAccessToken();
-      if (newAccessToken) {
-        // Retry original request with new token
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: `Bearer ${newAccessToken}`,
-          },
-        });
-      } else {
-        throw new Error("Sesiune expirată");
-      }
-    }
 
     if (!response.ok) {
       throw new Error("Eroare la încărcarea datelor");

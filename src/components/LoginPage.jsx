@@ -16,29 +16,15 @@ function LoginPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const response = await fetch("http://localhost:8000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+    const result = await login(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Eroare la autentificare");
-      }
-
-      // Store tokens and navigate
-      login(data.access_token, data.refresh_token);
+    if (result.success) {
       navigate("/options");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.error || "Eroare la autentificare");
     }
+
+    setLoading(false);
   };
 
   return (

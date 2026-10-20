@@ -1,103 +1,75 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const refreshRequestRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedRefreshToken = localStorage.getItem("refreshToken");
-    if (storedToken) {
-      setToken(storedToken);
-      setRefreshToken(storedRefreshToken);
-      setIsAuthenticated(true);
-    }
+    checkAuth();
   }, []);
 
-  const login = (accessToken, refreshTokenValue) => {
-    localStorage.setItem("token", accessToken);
-    localStorage.setItem("refreshToken", refreshTokenValue);
-    setToken(accessToken);
-    setRefreshToken(refreshTokenValue);
-    setIsAuthenticated(true);
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/auth/me", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (err) {
+      console.error("Auth check error:", err);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email, password) => {
+    const response = await fetch("http://localhost:8000/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (response.ok) {
+      setIsAuthenticated(true);
+      return { success: true };
+    } else {
+      const error = await response.json();
+      return { success: false, error: error.detail };
+    }
   };
 
   const logout = async () => {
     try {
-      if (token) {
-        await fetch("http://localhost:8000/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
+      await fetch("http://localhost:8000/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (err) {
       console.error("Logout error:", err);
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    setToken(null);
-    setRefreshToken(null);
     setIsAuthenticated(false);
-  };
-
-  const refreshAccessToken = async () => {
-    if (refreshRequestRef.current) {
-      return refreshRequestRef.current;
-    }
-
-    if (!refreshToken) {
-      await logout();
-      return false;
-    }
-
-    refreshRequestRef.current = (async () => {
-      try {
-      const response = await fetch("http://localhost:8000/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to refresh token");
-      }
-
-      const data = await response.json();
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("refreshToken", data.refresh_token);
-      setToken(data.access_token);
-      setRefreshToken(data.refresh_token);
-      return data.access_token;
-      } catch (err) {
-        await logout();
-        return false;
-      } finally {
-        refreshRequestRef.current = null;
-      }
-    })();
-
-    return refreshRequestRef.current;
   };
 
   return (
     <AuthContext.Provider
       value={{
-        token,
-        refreshToken,
         isAuthenticated,
+        isLoading,
         login,
         logout,
-        refreshAccessToken,
+        checkAuth,
       }}
     >
       {children}
     </AuthContext.Provider>
-  );
+  };
 };
 

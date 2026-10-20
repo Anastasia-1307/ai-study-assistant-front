@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 
 function MaterialsPage() {
   const navigate = useNavigate();
-  const { token, logout, refreshAccessToken } = useAuth();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState("notes");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,30 +47,13 @@ function MaterialsPage() {
   const API_BASE = "http://localhost:8000/materials";
 
   const fetchWithAuth = async (url, options = {}) => {
-    let response = await fetch(url, {
+    const response = await fetch(url, {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Bearer ${token}`,
       },
+      credentials: "include",
     });
-
-    // If token expired, try to refresh
-    if (response.status === 401) {
-      const newAccessToken = await refreshAccessToken();
-      if (newAccessToken) {
-        // Retry original request with new token
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...options.headers,
-            Authorization: `Bearer ${newAccessToken}`,
-          },
-        });
-      } else {
-        throw new Error("Sesiune expirată");
-      }
-    }
 
     if (!response.ok) {
       throw new Error("Eroare la încărcarea datelor");
@@ -340,7 +323,7 @@ function MaterialsPage() {
   const downloadFile = async (file) => {
     try {
       const response = await fetch(`${API_BASE}/files/${file.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!response.ok) throw new Error("Fișierul nu a putut fi descărcat");
 

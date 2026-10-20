@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "./useAuth";
 
 export function useStudyAssistant() {
-  const { token, refreshAccessToken } = useAuth();
   const [courseText, setCourseText] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,27 +38,18 @@ const generateMaterials = async () => {
       requestBody.document_id = uploadedDocument.document_id;
     }
 
-    const makeRequest = (accessToken) => fetch(
+    const response = await fetch(
       "http://127.0.0.1:8000/generate-material",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
+        credentials: "include",
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       }
     );
-
-    let response = await makeRequest(token);
-    if (response.status === 401) {
-      const newAccessToken = await refreshAccessToken();
-      if (!newAccessToken) {
-        throw new Error("Sesiune expirată. Autentifică-te din nou.");
-      }
-      response = await makeRequest(newAccessToken);
-    }
 
     const data = await response.json();
 
