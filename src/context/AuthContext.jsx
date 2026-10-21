@@ -42,7 +42,25 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } else {
       const error = await response.json();
-      return { success: false, error: error.detail };
+      // Handle both string and object error details
+      const errorDetail = typeof error.detail === 'object' ? error.detail : { message: error.detail };
+
+      // Handle 422 validation errors
+      if (response.status === 422) {
+        return {
+          success: false,
+          error: "Email invalid. Introduceți un email valid.",
+          detail: errorDetail,
+          status: response.status
+        };
+      }
+
+      return {
+        success: false,
+        error: errorDetail.message || error.detail,
+        detail: errorDetail,
+        status: response.status
+      };
     }
   };
 
@@ -70,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     >
       {children}
     </AuthContext.Provider>
-  };
+  );
 };
+
 

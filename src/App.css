@@ -885,6 +885,11 @@ textarea {
   line-height: 1.5;
 }
 
+.block-timer {
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .auth-switch {
   margin-top: 24px;
   text-align: center;
