@@ -16,7 +16,7 @@ export function useStudyAssistant() {
   const controllerRef = useRef(null);
 
   
-const generateMaterials = async () => {
+const generateMaterials = async (conversationId = null) => {
   if (loading || !courseText.trim()) {
     return;
   }
@@ -38,8 +38,13 @@ const generateMaterials = async () => {
       requestBody.document_id = uploadedDocument.document_id;
     }
 
+    // Adăugăm conversation_id dacă este furnizat
+    if (conversationId) {
+      requestBody.conversation_id = conversationId;
+    }
+
     const response = await fetch(
-      "http://127.0.0.1:8000/generate-material",
+      "http://localhost:8000/generate-material",
       {
         method: "POST",
         headers: {
@@ -73,11 +78,11 @@ const generateMaterials = async () => {
   }
 };
 
-  const cancelGeneration = () => {
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    setLoading(false);
-  };
+const cancelGeneration = () => {
+  if (controllerRef.current) {
+    controllerRef.current.abort();
+  }
+};
 
   useEffect(() => {
     return () => {
@@ -89,6 +94,7 @@ const generateMaterials = async () => {
     courseText,
     setCourseText,
     result,
+    setResult,
     loading,
     error,
     generateMaterials,
